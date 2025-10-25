@@ -1,0 +1,113 @@
+version: '3.8'
+
+networks:
+  surreal-cluster:
+    driver: bridge
+
+volumes:
+  pd1-data:
+    driver: local
+  tikv1-data:
+    driver: local
+
+services:
+  # Nginx Load Balancer
+  nginx-lb:
+    image: nginx:alpine
+    container_name: nginx-lb
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs:/var/log/nginx
+    networks:
+      - surreal-cluster
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Placement Driver 1
+  pd1:
+    image: pingcap/pd:v7.1.0
+    container_name: pd1
+    hostname: pd1
+    restart: unless-stopped
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    volumes:
+      - pd1-data:/data
+    command:
+      - --name=pd1
+      - --client-urls=http://0.0.0.0:2379
+      - --peer-urls=http://0.0.0.0:2380
+      - --advertise-client-urls=http://192.168.1.161:2379
+      - --advertise-peer-urls=http://192.168.1.161:2380
+      - --initial-cluster=pd1=http://192.168.1.161:2380,pd2=http://192.168.1.182:2380,pd3=http://192.168.1.203:2380
+      - --data-dir=/data
+    networks:
+      - surreal-cluster
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:2379/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # TiKV 1
+  tikv1:
+    image: pingcap/tikv:v7.1.0
+    container_name: tikv1
+    hostname: tikv1
+    restart: unless-stopped
+    depends_on:
+      - pd1
+    ports:
+      - "20160:20160"
+    volumes:
+      - tikv1-data:/data
+    command:
+      - --addr=0.0.0.0:20160
+      - --advertise-addr=192.168.1.161:20160
+      - --data-dir=/data
+      - --pd=192.168.1.161:2379,192.168.1.182:2379,192.168.1.203:2379
+    networks:
+      - surreal-cluster
+    healthcheck:
+      test: ["CMD", "sh", "-c", "echo 'health' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # SurrealDB 1
+  surrealdb1:
+    image: surrealdb/surrealdb:latest
+    container_name: surrealdb1
+    hostname: surrealdb1
+    restart: unless-stopped
+    depends_on:
+      - tikv1
+    ports:
+      - "8000:8000"
+    command:
+      - start
+      - --bind
+      - 0.0.0.0:8000
+      - --user
+      - root
+      - --pass
+      - SecurePassword123!
+      - --log
+      - info
+      - tikv://192.168.1.161:2379
+    networks:
+      - surreal-cluster
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

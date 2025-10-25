@@ -1,0 +1,94 @@
+version: '3.8'
+
+networks:
+  surreal-cluster:
+    driver: bridge
+
+volumes:
+  pd3-data:
+    driver: local
+  tikv3-data:
+    driver: local
+
+services:
+  # Placement Driver 3
+  pd3:
+    image: pingcap/pd:v7.1.0
+    container_name: pd3
+    hostname: pd3
+    restart: unless-stopped
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    volumes:
+      - pd3-data:/data
+    command:
+      - --name=pd3
+      - --client-urls=http://0.0.0.0:2379
+      - --peer-urls=http://0.0.0.0:2380
+      - --advertise-client-urls=http://192.168.1.203:2379
+      - --advertise-peer-urls=http://192.168.1.203:2380
+      - --initial-cluster=pd1=http://192.168.1.161:2380,pd2=http://192.168.1.182:2380,pd3=http://192.168.1.203:2380
+      - --data-dir=/data
+    networks:
+      - surreal-cluster
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:2379/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # TiKV 3
+  tikv3:
+    image: pingcap/tikv:v7.1.0
+    container_name: tikv3
+    hostname: tikv3
+    restart: unless-stopped
+    depends_on:
+      - pd3
+    ports:
+      - "20160:20160"
+    volumes:
+      - tikv3-data:/data
+    command:
+      - --addr=0.0.0.0:20160
+      - --advertise-addr=192.168.1.203:20160
+      - --data-dir=/data
+      - --pd=192.168.1.161:2379,192.168.1.182:2379,192.168.1.203:2379
+    networks:
+      - surreal-cluster
+    healthcheck:
+      test: ["CMD", "sh", "-c", "echo 'health' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # SurrealDB 3
+  surrealdb3:
+    image: surrealdb/surrealdb:latest
+    container_name: surrealdb3
+    hostname: surrealdb3
+    restart: unless-stopped
+    depends_on:
+      - tikv3
+    ports:
+      - "8000:8000"
+    command:
+      - start
+      - --bind
+      - 0.0.0.0:8000
+      - --user
+      - root
+      - --pass
+      - SecurePassword123!
+      - --log
+      - info
+      - tikv://192.168.1.161:2379
+    networks:
+      - surreal-cluster
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
