@@ -38,6 +38,309 @@ check-node:
 		exit 1; \
 	fi
 
+# ══════════════════════════════════════════════════════════
+# Підготовка середовища
+# ══════════════════════════════════════════════════════════
+
+.PHONY: check-deps
+check-deps: ## Перевірити всі необхідні залежності
+	@echo "$(BLUE)Checking dependencies...$(NC)"
+	@echo ""
+	@MISSING_DEPS=0; \
+	echo -n "  Docker:          "; \
+	if command -v docker &> /dev/null; then \
+		echo "$(GREEN)✓ $(shell docker --version)$(NC)"; \
+	else \
+		echo "$(RED)✗ Not found$(NC)"; \
+		MISSING_DEPS=1; \
+	fi; \
+	echo -n "  Docker Compose:  "; \
+	if docker compose version &> /dev/null; then \
+		echo "$(GREEN)✓ $(shell docker compose version --short)$(NC)"; \
+	else \
+		echo "$(RED)✗ Not found$(NC)"; \
+		MISSING_DEPS=1; \
+	fi; \
+	echo -n "  curl:            "; \
+	if command -v curl &> /dev/null; then \
+		echo "$(GREEN)✓ $(shell curl --version | head -1)$(NC)"; \
+	else \
+		echo "$(RED)✗ Not found$(NC)"; \
+		MISSING_DEPS=1; \
+	fi; \
+	echo -n "  jq:              "; \
+	if command -v jq &> /dev/null; then \
+		echo "$(GREEN)✓ $(shell jq --version)$(NC)"; \
+	else \
+		echo "$(RED)✗ Not found$(NC)"; \
+		MISSING_DEPS=1; \
+	fi; \
+	echo -n "  wget:            "; \
+	if command -v wget &> /dev/null; then \
+		echo "$(GREEN)✓ $(shell wget --version | head -1 | awk '{print $$3}')$(NC)"; \
+	else \
+		echo "$(RED)✗ Not found$(NC)"; \
+		MISSING_DEPS=1; \
+	fi; \
+	echo -n "  make:            "; \
+	if command -v make &> /dev/null; then \
+		echo "$(GREEN)✓ $(shell make --version | head -1)$(NC)"; \
+	else \
+		echo "$(RED)✗ Not found$(NC)"; \
+		MISSING_DEPS=1; \
+	fi; \
+	echo ""; \
+	if [ $$MISSING_DEPS -eq 1 ]; then \
+		echo "$(RED)Some dependencies are missing!$(NC)"; \
+		echo ""; \
+		echo "Install them with:"; \
+		echo "  sudo apt update"; \
+		echo "  sudo apt install -y docker.io docker-compose-plugin curl jq wget make"; \
+		echo ""; \
+		exit 1; \
+	else \
+		echo "$(GREEN)✓ All dependencies are installed$(NC)"; \
+	fi
+
+.PHONY: check-docker
+check-docker: ## Перевірити чи Docker запущений і доступний
+	@echo "$(BLUE)Checking Docker status...$(NC)"
+	@if docker info &> /dev/null; then \
+		echo "$(GREEN)✓ Docker is running$(NC)"; \
+		echo ""; \
+		docker info | grep -E "Server Version|Storage Driver|Operating System|Total Memory|CPUs"; \
+	else \
+		echo "$(RED)✗ Docker is not running or current user doesn't have permissions$(NC)"; \
+		echo ""; \
+		echo "Try:"; \
+		echo "  sudo systemctl start docker"; \
+		echo "  sudo usermod -aG docker $$USER"; \
+		echo "  (then logout and login again)"; \
+		exit 1; \
+	fi
+
+.PHONY: setup-dirs
+setup-dirs: check-node ## Створити необхідні директорії
+	@echo "$(GREEN)Creating directories for Node $(NODE)...$(NC)"
+	@mkdir -p $(NODE_DIR)/logs
+	@mkdir -p backups
+	@mkdir -p scripts
+	@if [ "$(NODE)" = "1" ]; then \
+		mkdir -p $(NODE_DIR)/logs; \
+		echo "$(GREEN)✓ Created logs directory for Nginx$(NC)"; \
+	fi
+	@echo "$(GREEN)✓ Directory structure created$(NC)"
+	@echo ""
+	@echo "Created:"
+	@ls -la $(NODE_DIR)/ 2>/dev/null || true
+	@if [ "$(NODE)" = "1" ]; then ls -la $(NODE_DIR)/logs/ 2>/dev/null || true; fi
+
+.PHONY: setup-hosts
+setup-hosts: ## Налаштувати /etc/hosts для резолюції імен
+	@echo "$(YELLOW)Setting up /etc/hosts...$(NC)"
+	@echo ""
+	@echo "The following entries will be added to /etc/hosts:"
+	@echo "  192.168.1.161 node1 pd1 tikv1"
+	@echo "  192.168.1.182 node2 pd2 tikv2"
+	@echo "  192.168.1.203 node3 pd3 tikv3"
+	@echo ""
+	@if grep -q "192.168.1.161 node1" /etc/hosts 2>/dev/null; then \
+		echo "$(YELLOW)Entries already exist in /etc/hosts$(NC)"; \
+	else \
+		echo "$(YELLOW)Adding entries to /etc/hosts (requires sudo)...$(NC)"; \
+		echo "192.168.1.161 node1 pd1 tikv1" | sudo tee -a /etc/hosts > /dev/null; \
+		echo "192.168.1.182 node2 pd2 tikv2" | sudo tee -a /etc/hosts > /dev/null; \
+		echo "192.168.1.203 node3 pd3 tikv3" | sudo tee -a /etc/hosts > /dev/null; \
+		echo "$(GREEN)✓ /etc/hosts updated$(NC)"; \
+	fi
+
+.PHONY: setup-firewall
+setup-firewall: ## Налаштувати firewall правила
+	@echo "$(YELLOW)Setting up firewall rules...$(NC)"
+	@echo ""
+	@if command -v ufw &> /dev/null; then \
+		echo "$(BLUE)Detected UFW firewall$(NC)"; \
+		echo ""; \
+		echo "Opening ports for cluster communication..."; \
+		sudo ufw allow from 192.168.1.0/24 to any port 2379 proto tcp comment 'PD client'; \
+		sudo ufw allow from 192.168.1.0/24 to any port 2380 proto tcp comment 'PD peer'; \
+		sudo ufw allow from 192.168.1.0/24 to any port 20160 proto tcp comment 'TiKV'; \
+		sudo ufw allow from 192.168.1.0/24 to any port 8000 proto tcp comment 'SurrealDB'; \
+		if [ "$(NODE)" = "1" ]; then \
+			echo "Opening port 80 for Load Balancer..."; \
+			sudo ufw allow 80/tcp comment 'Nginx LB'; \
+		fi; \
+		echo ""; \
+		echo "$(YELLOW)Current UFW status:$(NC)"; \
+		sudo ufw status numbered | grep -E '2379|2380|20160|8000|80' || echo "No rules found yet"; \
+		echo ""; \
+		echo "$(GREEN)✓ Firewall rules configured$(NC)"; \
+		echo ""; \
+		echo "$(YELLOW)Note: UFW must be enabled. Enable with:$(NC)"; \
+		echo "  sudo ufw enable"; \
+	else \
+		echo "$(YELLOW)UFW not found. Using iptables...$(NC)"; \
+		echo ""; \
+		sudo iptables -I INPUT -p tcp --dport 2379 -s 192.168.1.0/24 -j ACCEPT -m comment --comment "PD client" 2>/dev/null || true; \
+		sudo iptables -I INPUT -p tcp --dport 2380 -s 192.168.1.0/24 -j ACCEPT -m comment --comment "PD peer" 2>/dev/null || true; \
+		sudo iptables -I INPUT -p tcp --dport 20160 -s 192.168.1.0/24 -j ACCEPT -m comment --comment "TiKV" 2>/dev/null || true; \
+		sudo iptables -I INPUT -p tcp --dport 8000 -s 192.168.1.0/24 -j ACCEPT -m comment --comment "SurrealDB" 2>/dev/null || true; \
+		if [ "$(NODE)" = "1" ]; then \
+			sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT -m comment --comment "Nginx LB" 2>/dev/null || true; \
+		fi; \
+		echo "$(GREEN)✓ iptables rules added$(NC)"; \
+		echo ""; \
+		echo "$(YELLOW)To persist rules, install iptables-persistent:$(NC)"; \
+		echo "  sudo apt install iptables-persistent"; \
+		echo "  sudo netfilter-persistent save"; \
+	fi
+
+.PHONY: check-network
+check-network: ## Перевірити мережеву зв'язність з іншими нодами
+	@echo "$(BLUE)Checking network connectivity...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Current node IP:$(NC) $(LOCAL_IP)"
+	@echo ""
+	@echo "$(YELLOW)Testing connectivity to cluster nodes:$(NC)"
+	@for ip in 192.168.1.161 192.168.1.182 192.168.1.203; do \
+		echo -n "  $$ip: "; \
+		if ping -c 1 -W 2 $$ip &> /dev/null; then \
+			echo "$(GREEN)✓ reachable$(NC)"; \
+		else \
+			echo "$(RED)✗ unreachable$(NC)"; \
+		fi; \
+	done
+	@echo ""
+	@echo "$(YELLOW)Testing required ports:$(NC)"
+	@for port in 2379 2380 20160 8000; do \
+		for ip in 192.168.1.161 192.168.1.182 192.168.1.203; do \
+			if [ "$$ip" != "$(LOCAL_IP)" ]; then \
+				echo -n "  $$ip:$$port - "; \
+				if nc -z -w 2 $$ip $$port 2>/dev/null; then \
+					echo "$(GREEN)✓ open$(NC)"; \
+				else \
+					echo "$(YELLOW)⊘ closed/filtered$(NC)"; \
+				fi; \
+			fi; \
+		done; \
+	done
+
+.PHONY: check-resources
+check-resources: ## Перевірити системні ресурси
+	@echo "$(BLUE)Checking system resources...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Memory:$(NC)"
+	@free -h | grep -E "Mem|Swap"
+	@echo ""
+	@TOTAL_MEM=$$(free -g | awk '/^Mem:/{print $$2}'); \
+	if [ $$TOTAL_MEM -lt 4 ]; then \
+		echo "$(RED)⚠ Warning: Less than 4GB RAM available. Cluster may be slow.$(NC)"; \
+	else \
+		echo "$(GREEN)✓ Sufficient memory available$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)Disk Space:$(NC)"
+	@df -h / | grep -v Filesystem
+	@echo ""
+	@AVAIL_DISK=$$(df / | awk 'NR==2 {print $$4}' | sed 's/G//'); \
+	if [ $$AVAIL_DISK -lt 20 ]; then \
+		echo "$(RED)⚠ Warning: Less than 20GB disk space available.$(NC)"; \
+	else \
+		echo "$(GREEN)✓ Sufficient disk space available$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)CPU:$(NC)"
+	@lscpu | grep -E "Model name|CPU\(s\):" | head -2
+
+.PHONY: setup
+setup: check-deps check-docker setup-dirs setup-hosts setup-firewall ## Повне налаштування середовища (виконати перед першим запуском)
+	@echo ""
+	@echo "$(GREEN)╔════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(GREEN)║  Environment Setup Complete for Node $(NODE)                    ║$(NC)"
+	@echo "$(GREEN)╚════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Next steps:$(NC)"
+	@echo "  1. Verify network connectivity:  make check-network"
+	@echo "  2. Check system resources:       make check-resources"
+	@echo "  3. Start cluster components:     make init-cluster"
+	@echo ""
+
+.PHONY: verify
+verify: check-deps check-docker check-network check-resources ## Повна перевірка готовності до запуску
+	@echo ""
+	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║  Pre-flight Verification Complete                         ║$(NC)"
+	@echo "$(BLUE)╚════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@if [ -f "$(COMPOSE_FILE)" ]; then \
+		echo "$(GREEN)✓ Node $(NODE) is ready to start$(NC)"; \
+		echo ""; \
+		echo "To start the cluster, run:"; \
+		echo "  make init-cluster"; \
+	else \
+		echo "$(RED)✗ Compose file not found: $(COMPOSE_FILE)$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: setup-scripts
+setup-scripts: ## Зробити скрипти виконуваними
+	@echo "$(GREEN)Making scripts executable...$(NC)"
+	@if [ -f "scripts/health-check.sh" ]; then \
+		chmod +x scripts/health-check.sh; \
+		echo "$(GREEN)✓ scripts/health-check.sh$(NC)"; \
+	fi
+	@if [ -f "scripts/cluster-info.sh" ]; then \
+		chmod +x scripts/cluster-info.sh; \
+		echo "$(GREEN)✓ scripts/cluster-info.sh$(NC)"; \
+	fi
+	@echo "$(GREEN)✓ Scripts are ready$(NC)"
+
+.PHONY: install-tools
+install-tools: ## Встановити додаткові корисні інструменти
+	@echo "$(BLUE)Installing additional tools...$(NC)"
+	@echo ""
+	@echo "This will install:"
+	@echo "  • netcat-openbsd (for port checking)"
+	@echo "  • htop (for monitoring)"
+	@echo "  • net-tools (for network diagnostics)"
+	@echo ""
+	@read -p "Continue? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		sudo apt update; \
+		sudo apt install -y netcat-openbsd htop net-tools; \
+		echo "$(GREEN)✓ Additional tools installed$(NC)"; \
+	else \
+		echo "$(YELLOW)Cancelled$(NC)"; \
+	fi
+
+.PHONY: uninstall
+uninstall: ## Видалити всі компоненти кластера та дані
+	@echo "$(RED)╔════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(RED)║  WARNING: Complete Cluster Uninstallation                 ║$(NC)"
+	@echo "$(RED)╚════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "This will:"
+	@echo "  • Stop all containers"
+	@echo "  • Remove all volumes and data"
+	@echo "  • Remove all Docker images"
+	@echo "  • Clean up directories"
+	@echo ""
+	@read -p "Are you absolutely sure? Type 'DELETE' to confirm: " -r CONFIRM; \
+	if [ "$$CONFIRM" = "DELETE" ]; then \
+		echo ""; \
+		echo "$(YELLOW)Stopping and removing containers...$(NC)"; \
+		docker compose -f $(COMPOSE_FILE) down -v --rmi all 2>/dev/null || true; \
+		echo "$(YELLOW)Removing logs...$(NC)"; \
+		rm -rf $(NODE_DIR)/logs/* 2>/dev/null || true; \
+		echo "$(YELLOW)Removing backups...$(NC)"; \
+		rm -rf backups/* 2>/dev/null || true; \
+		echo ""; \
+		echo "$(GREEN)✓ Uninstallation complete$(NC)"; \
+	else \
+		echo "$(YELLOW)Cancelled - nothing was deleted$(NC)"; \
+	fi
+
 .PHONY: help
 help: ## Показати це повідомлення допомоги
 	@echo "$(BLUE)╔════════════════════════════════════════════════════════════╗$(NC)"
@@ -49,8 +352,17 @@ help: ## Показати це повідомлення допомоги
 	@echo "$(YELLOW)Usage:$(NC)"
 	@echo "  make <target> [NODE=1|2|3]"
 	@echo ""
-	@echo "$(YELLOW)Available targets:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo "$(CYAN)═══ Setup & Preparation ═══$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E 'setup|check-|verify|install' | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(CYAN)═══ Cluster Operations ═══$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E 'start|stop|restart|init' | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(CYAN)═══ Monitoring & Logs ═══$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E 'status|health|logs|cluster|info' | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(CYAN)═══ Maintenance ═══$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -E 'clean|pull|update|backup|uninstall' | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
 
 .PHONY: info
 info: ## Показати інформацію про поточну ноду
