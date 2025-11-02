@@ -1,12 +1,15 @@
 package metrics
 
 import (
+	"math"
+	"math/rand"
 	"sort"
 	"sync"
 	"time"
 )
 
 // Snapshot represents a point-in-time view of metrics
+// (public API preserved)
 type Snapshot struct {
 	Timestamp   time.Time
 	Overall     map[string]Stats
@@ -14,6 +17,7 @@ type Snapshot struct {
 }
 
 // Stats represents aggregated statistics for a time period
+// (public API preserved)
 type Stats struct {
 	Count        int64
 	SuccessCount int64
@@ -28,46 +32,113 @@ type Stats struct {
 }
 
 // collector is the concrete implementation of metrics collector
+// It uses:
+//   - Welford's algorithm for precise running mean (no precision loss)
+//   - Fixed-size reservoir sampling for accurate percentiles without storing all history
+//   - Exact stats for the current step from raw buffered samples
+//   - Hazen-style percentile interpolation to avoid repeated values on small N
 type collector struct {
 	mu               sync.RWMutex
 	operationsByType map[string]*operationData
+	rnd              *rand.Rand
 }
 
-// operationData holds both overall stats and current raw data
-type operationData struct {
-	overall Stats
+const (
+	// size of per-operation overall reservoir (tunable). Large enough for stable percentiles
+	defaultReservoirCap = 8192
+	defaultStepBufCap   = 256
+)
 
-	// Current step raw data (cleared after each snapshot)
-	currentDurations []time.Duration
-	currentSuccesses []bool
+// operationData holds both overall accumulators and current-step buffers
+// Overall uses streaming updates + reservoir sampling to compute quantiles from a bounded sample that approximates the full distribution.
+type operationData struct {
+	// overall accumulators
+	overallCount   int64
+	overallSuccess int64
+	overallFail    int64
+	minDur         time.Duration
+	maxDur         time.Duration
+
+	// Welford mean/variance (we only expose mean, but keep m2 if needed later)
+	mean float64
+	m2   float64
+
+	// bounded reservoir for quantiles of overall distribution
+	reservoir    []time.Duration
+	reservoirCap int
+	seen         int64 // total seen samples (for reservoir sampling)
+
+	// current step raw data (cleared after each snapshot)
+	curDurations []time.Duration
+	curSuccesses []bool
 }
 
 // NewCollector creates a new metrics collector
 func NewCollector() *collector {
 	return &collector{
 		operationsByType: make(map[string]*operationData),
+		rnd:              rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
-// RecordOperation records a completed operation
+// RecordOperation records a completed operation (signature preserved)
 func (c *collector) RecordOperation(operation string, duration time.Duration, success bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	data, exists := c.operationsByType[operation]
-	if !exists {
+	data, ok := c.operationsByType[operation]
+	if !ok {
 		data = &operationData{
-			currentDurations: make([]time.Duration, 0, 100),
-			currentSuccesses: make([]bool, 0, 100),
+			minDur:       time.Duration(math.MaxInt64),
+			maxDur:       0,
+			reservoirCap: defaultReservoirCap,
+			reservoir:    make([]time.Duration, 0, defaultReservoirCap),
+			curDurations: make([]time.Duration, 0, defaultStepBufCap),
+			curSuccesses: make([]bool, 0, defaultStepBufCap),
 		}
 		c.operationsByType[operation] = data
 	}
 
-	data.currentDurations = append(data.currentDurations, duration)
-	data.currentSuccesses = append(data.currentSuccesses, success)
+	// --- Update current step buffers ---
+	data.curDurations = append(data.curDurations, duration)
+	data.curSuccesses = append(data.curSuccesses, success)
+
+	// --- Streaming overall counters ---
+	data.overallCount++
+	if success {
+		data.overallSuccess++
+	} else {
+		data.overallFail++
+	}
+	if duration < data.minDur {
+		data.minDur = duration
+	}
+	if duration > data.maxDur {
+		data.maxDur = duration
+	}
+
+	// Welford: precise running mean
+	// newMean = mean + (x - mean)/n ; m2 += (x-mean)*(x-newMean)
+	n := float64(data.overallCount)
+	x := float64(duration)
+	delta := x - data.mean
+	data.mean += delta / n
+	data.m2 += delta * (x - data.mean)
+
+	// --- Reservoir sampling (Vitter's Algorithm R) ---
+	data.seen++
+	if len(data.reservoir) < data.reservoirCap {
+		data.reservoir = append(data.reservoir, duration)
+	} else {
+		// pick random index in [0, seen-1]; if within cap, replace
+		j := c.rnd.Int63n(data.seen)
+		if j < int64(data.reservoirCap) {
+			data.reservoir[j] = duration
+		}
+	}
 }
 
-// GetSnapshot returns a snapshot of current metrics and aggregates current step data
+// GetSnapshot returns a snapshot of current metrics and aggregates current step data (signature preserved)
 func (c *collector) GetSnapshot() Snapshot {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -79,132 +150,131 @@ func (c *collector) GetSnapshot() Snapshot {
 	}
 
 	for opType, data := range c.operationsByType {
-		// Calculate current step stats from raw data
-		current := c.calculateStats(data.currentDurations, data.currentSuccesses)
+		// Current step precise stats from raw buffers
+		current := calculateFromSamples(data.curDurations, data.curSuccesses)
 
-		// Aggregate current into overall
-		overall := c.aggregateStats(data.overall, current)
+		// Overall stats built from streaming accumulators + reservoir for quantiles
+		overall := Stats{}
+		overall.Count = data.overallCount
+		overall.SuccessCount = data.overallSuccess
+		overall.FailureCount = data.overallFail
+		if data.overallCount > 0 {
+			overall.MinDuration = data.minDur
+			overall.MaxDuration = data.maxDur
+			overall.Average = time.Duration(data.mean)
+
+			// percentiles from reservoir (bounded, but representative)
+			if len(data.reservoir) > 0 {
+				// copy+sort to avoid mutating the live reservoir
+				arr := make([]time.Duration, len(data.reservoir))
+				copy(arr, data.reservoir)
+				sort.Slice(arr, func(i, j int) bool { return arr[i] < arr[j] })
+
+				overall.Median = percentileHazen(arr, 50)
+				overall.P90 = percentileHazen(arr, 90)
+				overall.P95 = percentileHazen(arr, 95)
+				overall.P99 = percentileHazen(arr, 99)
+			}
+		}
 
 		snapshot.CurrentStep[opType] = current
 		snapshot.Overall[opType] = overall
 
-		// Update overall stats and clear current data to save memory
-		data.overall = overall
-		data.currentDurations = make([]time.Duration, 0, 100)
-		data.currentSuccesses = make([]bool, 0, 100)
+		// Clear step buffers to bound memory & mark a new step
+		data.curDurations = data.curDurations[:0]
+		data.curSuccesses = data.curSuccesses[:0]
 	}
 
 	return snapshot
 }
 
-// calculateStats computes histogram statistics from raw data
-func (c *collector) calculateStats(durations []time.Duration, successes []bool) Stats {
-	stats := Stats{}
-
-	count := len(durations)
-	if count == 0 {
-		return stats
+// calculateFromSamples computes exact stats for a batch of raw samples (current step)
+func calculateFromSamples(durations []time.Duration, successes []bool) Stats {
+	var out Stats
+	n := len(durations)
+	if n == 0 {
+		return out
 	}
 
-	stats.Count = int64(count)
-
-	// Count successes/failures
-	for _, success := range successes {
-		if success {
-			stats.SuccessCount++
+	// counts
+	out.Count = int64(n)
+	for _, s := range successes {
+		if s {
+			out.SuccessCount++
 		} else {
-			stats.FailureCount++
+			out.FailureCount++
 		}
 	}
 
-	// Sort durations for percentile calculations
-	sorted := make([]time.Duration, count)
-	copy(sorted, durations)
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i] < sorted[j]
-	})
+	// sort for quantiles
+	arr := make([]time.Duration, n)
+	copy(arr, durations)
+	sort.Slice(arr, func(i, j int) bool { return arr[i] < arr[j] })
 
-	// Calculate min, max, and sum
-	stats.MinDuration = sorted[0]
-	stats.MaxDuration = sorted[count-1]
+	out.MinDuration = arr[0]
+	out.MaxDuration = arr[n-1]
 
-	var sum time.Duration
-	for _, d := range sorted {
-		sum += d
+	// average (use float then cast to avoid overflow on big n)
+	var sum float64
+	for _, d := range arr {
+		sum += float64(d)
 	}
-	stats.Average = sum / time.Duration(count)
+	out.Average = time.Duration(sum / float64(n))
 
-	// Calculate percentiles
-	stats.Median = c.percentile(sorted, 50)
-	stats.P90 = c.percentile(sorted, 90)
-	stats.P95 = c.percentile(sorted, 95)
-	stats.P99 = c.percentile(sorted, 99)
+	// percentiles with Hazen interpolation to reduce ties on small samples
+	out.Median = percentileHazen(arr, 50)
+	out.P90 = percentileHazen(arr, 90)
+	out.P95 = percentileHazen(arr, 95)
+	out.P99 = percentileHazen(arr, 99)
 
-	return stats
+	return out
 }
 
-// percentile calculates the nth percentile from sorted data using linear interpolation
-func (c *collector) percentile(sorted []time.Duration, p int) time.Duration {
-	if len(sorted) == 0 {
+// percentileHazen computes the p-th percentile using Hazen's definition:
+// rank r = 1/2 + p/100*(n)
+// then linear interpolation between floor(r) and ceil(r)
+func percentileHazen(sorted []time.Duration, p int) time.Duration {
+	n := len(sorted)
+	if n == 0 {
 		return 0
 	}
-
-	if len(sorted) == 1 {
+	if n == 1 {
 		return sorted[0]
 	}
 
-	// Calculate the rank using the nearest-rank method with interpolation
-	rank := float64(p) / 100.0 * float64(len(sorted)-1)
-	lower := int(rank)
-	upper := lower + 1
-
-	if upper >= len(sorted) {
-		return sorted[len(sorted)-1]
+	// Clamp p into [0,100]
+	if p <= 0 {
+		return sorted[0]
+	}
+	if p >= 100 {
+		return sorted[n-1]
 	}
 
-	// Linear interpolation between lower and upper values
-	weight := rank - float64(lower)
-	return time.Duration(float64(sorted[lower])*(1-weight) + float64(sorted[upper])*weight)
+	r := 0.5 + (float64(p)/100.0)*float64(n)
+	// Convert to 0-based indices
+	lo := int(math.Floor(r)) - 1
+	hi := int(math.Ceil(r)) - 1
+	if lo < 0 {
+		lo = 0
+	}
+	if hi < 0 {
+		hi = 0
+	}
+	if lo >= n {
+		lo = n - 1
+	}
+	if hi >= n {
+		hi = n - 1
+	}
+
+	if lo == hi {
+		return sorted[lo]
+	}
+
+	w := r - math.Floor(r)
+	return lerpDuration(sorted[lo], sorted[hi], w)
 }
 
-// aggregateStats combines two Stats into an overall aggregate
-func (c *collector) aggregateStats(overall, current Stats) Stats {
-	if current.Count == 0 {
-		return overall
-	}
-
-	if overall.Count == 0 {
-		return current
-	}
-
-	result := Stats{
-		Count:        overall.Count + current.Count,
-		SuccessCount: overall.SuccessCount + current.SuccessCount,
-		FailureCount: overall.FailureCount + current.FailureCount,
-	}
-
-	// Min/Max
-	result.MinDuration = min(overall.MinDuration, current.MinDuration)
-	result.MaxDuration = max(overall.MaxDuration, current.MaxDuration)
-
-	// Weighted average
-	totalDuration := overall.Average*time.Duration(overall.Count) + current.Average*time.Duration(current.Count)
-	result.Average = totalDuration / time.Duration(result.Count)
-
-	// For percentiles, use weighted approximation
-	// Note: This is an approximation since we don't retain all historical raw data
-	weight1 := float64(overall.Count) / float64(result.Count)
-	weight2 := float64(current.Count) / float64(result.Count)
-
-	result.Median = c.weightedDuration(overall.Median, current.Median, weight1, weight2)
-	result.P90 = c.weightedDuration(overall.P90, current.P90, weight1, weight2)
-	result.P95 = c.weightedDuration(overall.P95, current.P95, weight1, weight2)
-	result.P99 = c.weightedDuration(overall.P99, current.P99, weight1, weight2)
-
-	return result
-}
-
-// weightedDuration calculates weighted average of two durations
-func (c *collector) weightedDuration(d1, d2 time.Duration, w1, w2 float64) time.Duration {
-	return time.Duration(float64(d1)*w1 + float64(d2)*w2)
+func lerpDuration(a, b time.Duration, w float64) time.Duration {
+	return time.Duration(float64(a)*(1.0-w) + float64(b)*w)
 }
