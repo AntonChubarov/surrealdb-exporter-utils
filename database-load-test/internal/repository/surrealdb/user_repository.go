@@ -13,6 +13,16 @@ import (
 
 const usersTable = "users"
 
+type ManagedConnection interface {
+	// DB returns the underlying SurrealDB connection
+	DB() *surrealdb.DB
+
+	// Close releases the connection back to its source.
+	// For pooled connections: returns to pool
+	// For singleton connections: no-op
+	Close() error
+}
+
 // userRepository implements the UserRepository interface for SurrealDB
 type userRepository struct {
 	db *surrealdb.DB
@@ -40,7 +50,7 @@ func NewUserRepository(db *surrealdb.DB) *userRepository {
 func (r *userRepository) Setup(ctx context.Context) error {
 	// Define the users table with schema
 	query := `
-		DEFINE TABLE IF NOT EXISTS users SCHEMAFULL;
+		DEFINE TABLE IF NOT EXISTS users SCHEMAFULL PERMISSIONS FULL;
 		DEFINE FIELD IF NOT EXISTS email ON users TYPE string;
 		DEFINE FIELD IF NOT EXISTS first_name ON users TYPE string;
 		DEFINE FIELD IF NOT EXISTS last_name ON users TYPE string;

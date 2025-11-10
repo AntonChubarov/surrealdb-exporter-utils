@@ -3,6 +3,7 @@ module github.com/AntonChubarov/surrealdb-exporter-utils
 go 1.25
 
 require (
+	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/brianvoe/gofakeit/v7 v7.8.1
 	github.com/jedib0t/go-pretty/v6 v6.6.9
 	github.com/surrealdb/surrealdb.go v1.0.0

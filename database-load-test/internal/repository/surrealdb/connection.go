@@ -3,6 +3,7 @@ package surrealdb
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/surrealdb/surrealdb.go"
 )
@@ -44,6 +45,15 @@ func NewConnection(ctx context.Context, cfg Config) (*surrealdb.DB, error) {
 	if err = db.Use(ctx, cfg.SurrealNamespace(), cfg.SurrealDatabase()); err != nil {
 		return nil, fmt.Errorf("failed to use namespace/database: %w", err)
 	}
+
+	sessionInfo, err := surrealdb.Query[[]interface{}](ctx, db, "SELECT * FROM $session", nil)
+	if err != nil {
+		slog.Error("failed to query session info", "error", err)
+	}
+	slog.Info("APP A: Session info", "session", sessionInfo)
+
+	dbInfo, _ := surrealdb.Query[map[string]any](ctx, db, "INFO FOR DB", nil)
+	slog.Info("APP A: Database info", "db", dbInfo)
 
 	return db, nil
 }
