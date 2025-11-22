@@ -1,23 +1,5 @@
 {
-  "apiVersion": "dashboard.grafana.app/v1beta1",
-  "kind": "Dashboard",
-  "metadata": {
-    "name": "ypFZFgvmz",
-    "namespace": "default",
-    "uid": "06HLQZtzfgOXOldXRkefEhHMLHVZRnBXXXv2RS3xsbgX",
-    "resourceVersion": "1",
-    "generation": 1,
-    "creationTimestamp": "2025-11-18T02:45:02Z",
-    "labels": {
-      "grafana.app/deprecatedInternalID": "1"
-    },
-    "annotations": {
-      "grafana.app/createdBy": "user:df4gbm5awv4e8c",
-      "grafana.app/updatedBy": "user:df4gbm5awv4e8c",
-      "grafana.app/updatedTimestamp": "2025-11-18T02:45:02Z"
-    }
-  },
-  "spec": {
+  "dashboard": {
     "annotations": {
       "list": [
         {
@@ -37,13 +19,13 @@
     "editable": true,
     "fiscalYearStartMonth": 0,
     "graphTooltip": 0,
-    "id": 1,
+    "id": 4,
     "links": [],
     "panels": [
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
+          "uid": "PBFA97CFB590B2093"
         },
         "fieldConfig": {
           "defaults": {
@@ -148,7 +130,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "process_resident_memory_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}",
             "format": "time_series",
@@ -161,7 +143,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "process_virtual_memory_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}",
             "format": "time_series",
@@ -178,7 +160,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
+          "uid": "PBFA97CFB590B2093"
         },
         "fieldConfig": {
           "defaults": {
@@ -266,7 +248,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "rate(process_resident_memory_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}[$interval])",
             "format": "time_series",
@@ -279,7 +261,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "deriv(process_virtual_memory_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}[$interval])",
             "format": "time_series",
@@ -296,7 +278,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
+          "uid": "PBFA97CFB590B2093"
         },
         "fieldConfig": {
           "defaults": {
@@ -401,7 +383,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "go_memstats_alloc_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}",
             "format": "time_series",
@@ -414,7 +396,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "rate(go_memstats_alloc_bytes_total{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}[30s])",
             "format": "time_series",
@@ -427,7 +409,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "go_memstats_stack_inuse_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}",
             "format": "time_series",
@@ -440,7 +422,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "go_memstats_heap_inuse_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}",
             "format": "time_series",
@@ -458,7 +440,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
+          "uid": "PBFA97CFB590B2093"
         },
         "fieldConfig": {
           "defaults": {
@@ -563,7 +545,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "deriv(go_memstats_alloc_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}[$interval])",
             "format": "time_series",
@@ -576,7 +558,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "rate(go_memstats_alloc_bytes_total{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}[$interval])",
             "format": "time_series",
@@ -589,7 +571,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "deriv(go_memstats_stack_inuse_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}[$interval])",
             "format": "time_series",
@@ -602,7 +584,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "deriv(go_memstats_heap_inuse_bytes{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}[$interval])",
             "format": "time_series",
@@ -620,7 +602,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
+          "uid": "PBFA97CFB590B2093"
         },
         "fieldConfig": {
           "defaults": {
@@ -708,7 +690,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "process_open_fds{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}",
             "format": "time_series",
@@ -725,7 +707,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
+          "uid": "PBFA97CFB590B2093"
         },
         "fieldConfig": {
           "defaults": {
@@ -813,7 +795,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "deriv(process_open_fds{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}[$interval])",
             "format": "time_series",
@@ -830,7 +812,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
+          "uid": "PBFA97CFB590B2093"
         },
         "fieldConfig": {
           "defaults": {
@@ -918,7 +900,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "go_goroutines{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}",
             "format": "time_series",
@@ -935,7 +917,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
+          "uid": "PBFA97CFB590B2093"
         },
         "fieldConfig": {
           "defaults": {
@@ -1023,7 +1005,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
+              "uid": "PBFA97CFB590B2093"
             },
             "expr": "go_gc_duration_seconds{namespace=~\"^($namespace)$\",pod=~\"^($pod)$\"}",
             "format": "time_series",
@@ -1050,7 +1032,7 @@
             "text": "All",
             "value": "$__all"
           },
-          "datasource": "ff4gctb0wohs0f",
+          "datasource": "PBFA97CFB590B2093",
           "includeAll": true,
           "multi": true,
           "name": "namespace",
@@ -1066,7 +1048,7 @@
             "text": "All",
             "value": "$__all"
           },
-          "datasource": "ff4gctb0wohs0f",
+          "datasource": "PBFA97CFB590B2093",
           "includeAll": true,
           "multi": true,
           "name": "pod",
@@ -1128,5 +1110,5 @@
     "uid": "ypFZFgvmz",
     "version": 1
   },
-  "status": {}
+  "overwrite": false
 }

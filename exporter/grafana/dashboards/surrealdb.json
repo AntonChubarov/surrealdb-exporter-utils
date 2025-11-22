@@ -1,14 +1,5 @@
 {
-  "apiVersion": "dashboard.grafana.app/v1beta1",
-  "kind": "Dashboard",
-  "metadata": {
-    "name": "ad9kml6",
-    "generation": 22,
-    "creationTimestamp": "2025-11-20T15:35:17Z",
-    "labels": {},
-    "annotations": {}
-  },
-  "spec": {
+  "dashboard": {
     "annotations": {
       "list": [
         {
@@ -28,13 +19,13 @@
     "editable": true,
     "fiscalYearStartMonth": 0,
     "graphTooltip": 0,
-    "id": 4,
+    "id": 0,
     "links": [],
     "panels": [
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
+          "uid": "PBFA97CFB590B2093"
         },
         "fieldConfig": {
           "defaults": {
@@ -50,8 +41,8 @@
               "barAlignment": 0,
               "barWidthFactor": 0.6,
               "drawStyle": "line",
-              "fillOpacity": 58,
-              "gradientMode": "hue",
+              "fillOpacity": 0,
+              "gradientMode": "none",
               "hideFrom": {
                 "legend": false,
                 "tooltip": false,
@@ -93,18 +84,18 @@
           "overrides": []
         },
         "gridPos": {
-          "h": 8,
-          "w": 12,
+          "h": 21,
+          "w": 24,
           "x": 0,
           "y": 0
         },
-        "id": 2,
+        "id": 1,
         "options": {
           "legend": {
             "calcs": [],
             "displayMode": "list",
             "placement": "bottom",
-            "showLegend": false
+            "showLegend": true
           },
           "tooltip": {
             "hideZeros": false,
@@ -115,549 +106,36 @@
         "pluginVersion": "12.3.0",
         "targets": [
           {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "PBFA97CFB590B2093"
+            },
             "editorMode": "builder",
-            "expr": "surrealdb_system_cpu_usage{cluster=\"$cluster\"}",
+            "expr": "surrealdb_table_record_count",
             "legendFormat": "__auto",
             "range": true,
             "refId": "A"
           }
         ],
-        "title": "CPU Usage",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "barWidthFactor": 0.6,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "hue",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "auto",
-              "showValues": false,
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": 0
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 0
-        },
-        "id": 3,
-        "options": {
-          "legend": {
-            "calcs": [
-              "min",
-              "max",
-              "lastNotNull"
-            ],
-            "displayMode": "table",
-            "placement": "right",
-            "showLegend": true
-          },
-          "tooltip": {
-            "hideZeros": false,
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "pluginVersion": "12.3.0",
-        "targets": [
-          {
-            "editorMode": "builder",
-            "expr": "surrealdb_system_load_average{cluster=\"$cluster\"}",
-            "legendFormat": "{{period}}",
-            "range": true,
-            "refId": "A"
-          }
-        ],
-        "title": "Load Average",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "barWidthFactor": 0.6,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "auto",
-              "showValues": false,
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "min": 0,
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": 0
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            },
-            "unit": "bytes"
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 8
-        },
-        "id": 4,
-        "options": {
-          "legend": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "displayMode": "table",
-            "placement": "right",
-            "showLegend": true
-          },
-          "tooltip": {
-            "hideZeros": false,
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "pluginVersion": "12.3.0",
-        "targets": [
-          {
-            "editorMode": "builder",
-            "expr": "surrealdb_system_memory_allocated_bytes",
-            "legendFormat": "Allocated",
-            "range": true,
-            "refId": "A"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
-            },
-            "editorMode": "builder",
-            "expr": "surrealdb_system_memory_usage_bytes",
-            "hide": false,
-            "legendFormat": "Usage",
-            "range": true,
-            "refId": "B"
-          }
-        ],
-        "title": "Memory Usage",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "barWidthFactor": 0.6,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "auto",
-              "showValues": false,
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": 0
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            },
-            "unit": "s"
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 8
-        },
-        "id": 5,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "hideZeros": false,
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "pluginVersion": "12.3.0",
-        "targets": [
-          {
-            "editorMode": "code",
-            "expr": "surrealdb_info_scrape_duration_seconds{cluster=\"$cluster\", instance=\"$instance\"}",
-            "legendFormat": "Info",
-            "range": true,
-            "refId": "A"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
-            },
-            "editorMode": "code",
-            "expr": "surrealdb_record_count_scrape_duration_seconds{cluster=\"$cluster\", instance=\"$instance\"}",
-            "hide": false,
-            "instant": false,
-            "legendFormat": "Record count",
-            "range": true,
-            "refId": "B"
-          },
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
-            },
-            "editorMode": "code",
-            "expr": "scrape_duration_seconds{cluster=\"$cluster\", instance=\"$instance\"}",
-            "hide": false,
-            "instant": false,
-            "legendFormat": "Prometheus",
-            "range": true,
-            "refId": "C"
-          }
-        ],
-        "title": "Scrape duration",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "type": "prometheus",
-          "uid": "ff4gctb0wohs0f"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "barWidthFactor": 0.6,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "auto",
-              "showValues": false,
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": 0
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 17,
-          "w": 24,
-          "x": 0,
-          "y": 16
-        },
-        "id": 1,
-        "options": {
-          "legend": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "displayMode": "table",
-            "placement": "right",
-            "showLegend": true
-          },
-          "tooltip": {
-            "hideZeros": false,
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "pluginVersion": "12.3.0",
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "ff4gctb0wohs0f"
-            },
-            "editorMode": "code",
-            "expr": "surrealdb_table_record_count{cluster=\"$cluster\", instance=\"$instance\", namespace=\"$namespace\", database=\"$database\"}",
-            "legendFormat": "{{table}}",
-            "range": true,
-            "refId": "A"
-          }
-        ],
-        "title": "Table Record Count",
+        "title": "Record Count",
         "type": "timeseries"
       }
     ],
     "preload": false,
-    "refresh": "10s",
     "schemaVersion": 42,
     "tags": [],
     "templating": {
-      "list": [
-        {
-          "allowCustomValue": false,
-          "current": {
-            "text": "local-test-cluster",
-            "value": "local-test-cluster"
-          },
-          "definition": "label_values(surrealdb_build_info,cluster)",
-          "description": "SurrealDB Cluster Name",
-          "label": "Cluster",
-          "name": "cluster",
-          "options": [],
-          "query": {
-            "qryType": 1,
-            "query": "label_values(surrealdb_build_info,cluster)",
-            "refId": "PrometheusVariableQueryEditor-VariableQuery"
-          },
-          "refresh": 1,
-          "regex": "",
-          "sort": 1,
-          "type": "query"
-        },
-        {
-          "current": {
-            "text": "surrealdb-exporter:9224",
-            "value": "surrealdb-exporter:9224"
-          },
-          "definition": "label_values(surrealdb_build_info{cluster=\"$cluster\"},instance)",
-          "label": "Instance",
-          "name": "instance",
-          "options": [],
-          "query": {
-            "qryType": 1,
-            "query": "label_values(surrealdb_build_info{cluster=\"$cluster\"},instance)",
-            "refId": "PrometheusVariableQueryEditor-VariableQuery"
-          },
-          "refresh": 1,
-          "regex": "",
-          "type": "query"
-        },
-        {
-          "current": {
-            "text": "ns_late",
-            "value": "ns_late"
-          },
-          "definition": "label_values(surrealdb_namespace_databases{cluster=\"$cluster\", instance=\"$instance\"},namespace)",
-          "description": "",
-          "label": "Namespace",
-          "name": "namespace",
-          "options": [],
-          "query": {
-            "qryType": 1,
-            "query": "label_values(surrealdb_namespace_databases{cluster=\"$cluster\", instance=\"$instance\"},namespace)",
-            "refId": "PrometheusVariableQueryEditor-VariableQuery"
-          },
-          "refresh": 1,
-          "regex": "",
-          "type": "query"
-        },
-        {
-          "current": {
-            "text": "db_indeed",
-            "value": "db_indeed"
-          },
-          "definition": "label_values(surrealdb_database_tables{cluster=\"$cluster\", instance=\"$instance\", namespace=\"$namespace\"},database)",
-          "label": "Database",
-          "name": "database",
-          "options": [],
-          "query": {
-            "qryType": 1,
-            "query": "label_values(surrealdb_database_tables{cluster=\"$cluster\", instance=\"$instance\", namespace=\"$namespace\"},database)",
-            "refId": "PrometheusVariableQueryEditor-VariableQuery"
-          },
-          "refresh": 1,
-          "regex": "",
-          "type": "query"
-        }
-      ]
+      "list": []
     },
     "time": {
-      "from": "now-1h",
+      "from": "now-30m",
       "to": "now"
     },
-    "timepicker": {
-      "refresh_intervals": [
-        "5s",
-        "10s",
-        "15s",
-        "30s",
-        "1m",
-        "2m",
-        "5m"
-      ]
-    },
+    "timepicker": {},
     "timezone": "browser",
     "title": "SurrealDB",
-    "uid": "ad9kml6",
-    "version": 22
+    "uid": "adjpxpf",
+    "version": 2
   },
-  "status": {}
+  "overwrite": false
 }
