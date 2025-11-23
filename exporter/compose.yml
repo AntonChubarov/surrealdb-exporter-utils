@@ -18,6 +18,7 @@ services:
 #      - surrealdb
     networks:
       - monitoring
+      - surreal-network
     restart: unless-stopped
 
   # Prometheus
@@ -60,6 +61,9 @@ services:
 networks:
   monitoring:
     driver: bridge
+  surreal-network:
+    external: true
+    name: surreal-network
 
 volumes:
   prometheus-data:

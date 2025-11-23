@@ -5,7 +5,7 @@ metrics_display:
   display_interval_ms: 5000
 
 surrealdb:
-  url: "ws://192.168.1.161"
+  url: "ws://localhost:8000"
   namespace: "test"
   database: "loadtest"
   username: "root"
@@ -15,23 +15,23 @@ executables:
   users:
     create:
       start_delay_seconds: 0
-      events_per_minute: 600
+      events_per_minute: 60
       variance_percents: 40
     read:
       start_delay_seconds: 1
-      events_per_minute: 18000
+      events_per_minute: 1800
       variance_percents: 20
     update:
       start_delay_seconds: 2
-      events_per_minute: 1200
+      events_per_minute: 120
       variance_percents: 30
     delete:
       start_delay_seconds: 3
-      events_per_minute: 100
+      events_per_minute: 10
       variance_percents: 50
     get_all:
       start_delay_seconds: 4
-      events_per_minute: 600
+      events_per_minute: 60
       variance_percents: 25
     page_size: 20
 

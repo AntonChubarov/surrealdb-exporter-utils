@@ -102,10 +102,10 @@ func main() {
 	}
 
 	// Generate fake namespace and database names (overridable via env vars)
-	cfg.Namespace = getenv("SURREALDB_NAMESPACE", "ns_stack" /*randomIdent("ns")*/)
-	cfg.Database = getenv("SURREALDB_DATABASE", randomIdent("db"))
+	cfg.Namespace = getenv("SURREALDB_NAMESPACE", "ns_most" /*randomIdent("ns")*/)
+	cfg.Database = getenv("SURREALDB_DATABASE", "db_yourselves" /*randomIdent("db")*/)
 
-	url := getenv("SURREALDB_URL", "ws://192.168.1.161:8000")
+	url := getenv("SURREALDB_URL", "ws://localhost:8000")
 	user := getenv("SURREALDB_USER", "root")
 	pass := getenv("SURREALDB_PASS", "SecurePassword123!")
 
@@ -342,6 +342,11 @@ func seedKeyValues(ctx context.Context, db *surrealdb.DB, cfg Config) error {
 	}
 
 	for i := 0; i < cfg.NumKV; i++ {
+		// Respect cancellation if caller wants to stop seeding.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
 		var key string
 		if i < len(baseKeys) {
 			key = baseKeys[i]
@@ -351,18 +356,20 @@ func seedKeyValues(ctx context.Context, db *surrealdb.DB, cfg Config) error {
 
 		value := gofakeit.BuzzWord()
 		if value == "" {
-			value = fmt.Sprintf("value-%d", rand.Intn(1000000))
+			value = fmt.Sprintf("value-%d", rand.Intn(1_000_000))
 		}
 
 		rid := models.NewRecordID("kv", key)
-		if _, err := surrealdb.Create[map[string]any](ctx, db, rid, map[string]any{
+
+		// UPSERT is idempotent: creates if missing, overwrites if already there.
+		if _, err := surrealdb.Upsert[map[string]any](ctx, db, rid, map[string]any{
 			"value": value,
 		}); err != nil {
-			return fmt.Errorf("create kv %q: %w", key, err)
+			return fmt.Errorf("upsert kv %q: %w", key, err)
 		}
 	}
 
-	log.Printf("inserted %d key-value pairs", cfg.NumKV)
+	log.Printf("inserted/updated %d key-value pairs", cfg.NumKV)
 	return nil
 }
 

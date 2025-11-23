@@ -30,3 +30,5 @@ services:
 
 networks:
   surreal-network:
+    name: surreal-network
+    driver: bridge
