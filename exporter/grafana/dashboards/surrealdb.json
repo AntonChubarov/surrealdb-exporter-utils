@@ -65,6 +65,7 @@
             }
           },
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -90,9 +91,11 @@
       "id": 1,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
           "showLegend": true
         },
         "tooltip": {
@@ -108,14 +111,14 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "editorMode": "builder",
-          "expr": "surrealdb_table_record_count",
-          "legendFormat": "__auto",
+          "editorMode": "code",
+          "expr": "surrealdb_table_record_count{job=\"$job\", cluster=\"$cluster\", instance=\"$instance\", namespace=\"$namespace\", database=\"$database\"}",
+          "legendFormat": "{{table}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Record Count",
+      "title": "Table Record Count",
       "type": "timeseries"
     }
   ],
@@ -123,15 +126,115 @@
   "schemaVersion": 42,
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "text": "surrealdb-exporter",
+          "value": "surrealdb-exporter"
+        },
+        "definition": "label_values(surrealdb_build_info,job)",
+        "label": "Job",
+        "name": "job",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(surrealdb_build_info,job)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "local-test-cluster",
+          "value": "local-test-cluster"
+        },
+        "definition": "label_values(surrealdb_build_info{job=\"$job\"},cluster)",
+        "label": "Cluster",
+        "name": "cluster",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(surrealdb_build_info{job=\"$job\"},cluster)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "surrealdb-exporter:9224",
+          "value": "surrealdb-exporter:9224"
+        },
+        "definition": "label_values(surrealdb_build_info{job=\"$job\", cluster=\"$cluster\"},instance)",
+        "label": "Instance",
+        "name": "instance",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(surrealdb_build_info{job=\"$job\", cluster=\"$cluster\"},instance)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "ns_late",
+          "value": "ns_late"
+        },
+        "definition": "label_values(surrealdb_namespace_databases{job=\"$job\", cluster=\"$cluster\", instance=\"$instance\"},namespace)",
+        "label": "Namespace",
+        "name": "namespace",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(surrealdb_namespace_databases{job=\"$job\", cluster=\"$cluster\", instance=\"$instance\"},namespace)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "db_indeed",
+          "value": "db_indeed"
+        },
+        "definition": "label_values(surrealdb_database_tables{job=\"$job\", cluster=\"$cluster\", instance=\"$instance\", namespace=\"$namespace\"},database)",
+        "label": "Database",
+        "name": "database",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(surrealdb_database_tables{job=\"$job\", cluster=\"$cluster\", instance=\"$instance\", namespace=\"$namespace\"},database)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-30m",
     "to": "now"
   },
-  "timepicker": {},
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "20s",
+      "30s",
+      "1m",
+      "2m",
+      "5m"
+    ]
+  },
   "timezone": "browser",
   "title": "SurrealDB",
   "uid": "adjpxpf",
-  "version": 2
+  "version": 1
 }

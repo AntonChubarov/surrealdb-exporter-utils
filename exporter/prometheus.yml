@@ -31,7 +31,6 @@ scrape_configs:
     static_configs:
       - targets: ['surrealdb-exporter:9224']
         labels:
-          cluster: 'local-test-cluster'
           environment: 'development'
     # Optional: Add relabeling if needed
     # relabel_configs:
