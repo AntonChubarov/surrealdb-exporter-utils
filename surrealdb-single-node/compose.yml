@@ -8,6 +8,26 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+
+    environment:
+      # Required to enable SurrealDB observability
+      SURREAL_TELEMETRY_PROVIDER: "otlp"  # :contentReference[oaicite:1]{index=1}
+
+      # Force OTLP over HTTP/protobuf (collector on host:4318)
+#      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"  # standard OTEL env :contentReference[oaicite:2]{index=2}
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4317"
+      # For OTLP/HTTP, SDK appends /v1/metrics automatically to the base endpoint. :contentReference[oaicite:3]{index=3}
+
+      # Optional: give the service a name in your telemetry backend
+      OTEL_SERVICE_NAME: "surrealdb"
+
+      # Optional: if you only want metrics, disable traces
+      # SURREAL_TELEMETRY_DISABLE_TRACING: "true"  # :contentReference[oaicite:4]{index=4}
+
+    # Needed on Linux so the container can reach the host via host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     command:
       - start
       - --bind
@@ -19,8 +39,10 @@ services:
       - --log
       - info
       - memory
+
     networks:
       - surreal-network
+
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8000/health"]
       interval: 30s
