@@ -15,7 +15,7 @@ services:
 
       # Force OTLP over HTTP/protobuf (collector on host:4318)
 #      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"  # standard OTEL env :contentReference[oaicite:2]{index=2}
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4317"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://surrealdb-exporter:4317"
       # For OTLP/HTTP, SDK appends /v1/metrics automatically to the base endpoint. :contentReference[oaicite:3]{index=3}
 
       # Optional: give the service a name in your telemetry backend
