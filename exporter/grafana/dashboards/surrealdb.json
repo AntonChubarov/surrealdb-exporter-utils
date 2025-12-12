@@ -584,6 +584,7 @@
             }
           },
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -860,7 +861,7 @@
           "refId": "A"
         }
       ],
-      "title": "Active HTTP Recuests",
+      "title": "Active HTTP Requests",
       "type": "timeseries"
     },
     {
@@ -1073,7 +1074,7 @@
           "refId": "A"
         }
       ],
-      "title": "Active RPC Recuests",
+      "title": "Active RPC Requests",
       "type": "timeseries"
     },
     {
@@ -2730,7 +2731,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
+        "w": 12,
         "x": 0,
         "y": 85
       },
@@ -2784,9 +2785,122 @@
           "legendFormat": "Record Count",
           "range": true,
           "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "surrealdb_stats_table_scrape_duration_seconds{job=\"$job\", cluster=\"$cluster\", instance=\"$instance\"}",
+          "hide": false,
+          "legendFormat": "Stats Table",
+          "range": true,
+          "refId": "D"
         }
       ],
       "title": "Scrape Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 85
+      },
+      "id": 30,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "rate(surrealdb_stats_table_operations{job=\"$job\", cluster=\"$cluster\", instance=\"$instance\", namespace=\"$namespace\", database=\"$database\"}[1m])",
+          "legendFormat": "{{table}}-{{operation_type}}-{{operation}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Operation Rate (Stats Table)",
       "type": "timeseries"
     }
   ],
@@ -2852,8 +2966,8 @@
       },
       {
         "current": {
-          "text": "ns_most",
-          "value": "ns_most"
+          "text": "test",
+          "value": "test"
         },
         "definition": "label_values(surrealdb_namespace_databases{job=\"$job\", cluster=\"$cluster\", instance=\"$instance\"},namespace)",
         "label": "Namespace",
@@ -2870,8 +2984,8 @@
       },
       {
         "current": {
-          "text": "db_yourselves",
-          "value": "db_yourselves"
+          "text": "loadtest",
+          "value": "loadtest"
         },
         "definition": "label_values(surrealdb_database_tables{job=\"$job\", cluster=\"$cluster\", instance=\"$instance\", namespace=\"$namespace\"},database)",
         "label": "Database",
@@ -2889,7 +3003,7 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {
@@ -2905,5 +3019,5 @@
   "timezone": "browser",
   "title": "SurrealDB",
   "uid": "adjpxpf",
-  "version": 5
+  "version": 7
 }

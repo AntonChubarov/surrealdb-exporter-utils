@@ -102,8 +102,8 @@ func main() {
 	}
 
 	// Generate fake namespace and database names (overridable via env vars)
-	cfg.Namespace = getenv("SURREALDB_NAMESPACE", "ns_most" /*randomIdent("ns")*/)
-	cfg.Database = getenv("SURREALDB_DATABASE", "db_yourselves" /*randomIdent("db")*/)
+	cfg.Namespace = getenv("SURREALDB_NAMESPACE", "ns_sample" /*randomIdent("ns")*/)
+	cfg.Database = getenv("SURREALDB_DATABASE", "ns_sample" /*randomIdent("db")*/)
 
 	url := getenv("SURREALDB_URL", "ws://localhost:8000")
 	user := getenv("SURREALDB_USER", "root")

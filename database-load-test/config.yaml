@@ -35,4 +35,29 @@ executables:
       variance_percents: 25
     page_size: 20
 
-
+  follows:
+    create:
+      start_delay_seconds: 5
+      events_per_minute: 120
+      variance_percents: 30
+    get_user_follows:
+      start_delay_seconds: 6
+      events_per_minute: 300
+      variance_percents: 25
+    get_user_followers:
+      start_delay_seconds: 6
+      events_per_minute: 300
+      variance_percents: 25
+    common_follows:
+      start_delay_seconds: 7
+      events_per_minute: 60
+      variance_percents: 30
+    common_followers:
+      start_delay_seconds: 7
+      events_per_minute: 60
+      variance_percents: 30
+    delete:
+      start_delay_seconds: 10
+      events_per_minute: 20
+      variance_percents: 40
+    page_size: 20

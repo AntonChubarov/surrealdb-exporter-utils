@@ -12,6 +12,57 @@ type User struct {
 	UpdatedAt time.Time
 }
 
+// RelationshipType represents the type of follow relationship between users
+type RelationshipType string
+
+const (
+	RelationshipTypeFriend       RelationshipType = "friend"
+	RelationshipTypeColleague    RelationshipType = "colleague"
+	RelationshipTypeAcquaintance RelationshipType = "acquaintance"
+	RelationshipTypeMentor       RelationshipType = "mentor"
+	RelationshipTypeFamily       RelationshipType = "family"
+	RelationshipTypeProfessional RelationshipType = "professional"
+	RelationshipTypeCasual       RelationshipType = "casual"
+)
+
+// AllRelationshipTypes returns all available relationship types
+func AllRelationshipTypes() []RelationshipType {
+	return []RelationshipType{
+		RelationshipTypeFriend,
+		RelationshipTypeColleague,
+		RelationshipTypeAcquaintance,
+		RelationshipTypeMentor,
+		RelationshipTypeFamily,
+		RelationshipTypeProfessional,
+		RelationshipTypeCasual,
+	}
+}
+
+// Follow represents a graph edge between two users with relationship metadata
+type Follow struct {
+	ID               string
+	FollowerID       string // The user who is following (in)
+	FolloweeID       string // The user being followed (out)
+	RelationshipType RelationshipType
+	Strength         int // Relationship strength 1-10
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+// FollowWithUsers represents a follow relationship with expanded user data
+type FollowWithUsers struct {
+	Follow
+	Follower *User
+	Followee *User
+}
+
+// CommonFollowResult represents the result of common follows/followers queries
+type CommonFollowResult struct {
+	UserID string
+	User   *User
+	Count  int
+}
+
 type EventRate struct {
 	StartDelay       time.Duration
 	EventsPerMinute  float64

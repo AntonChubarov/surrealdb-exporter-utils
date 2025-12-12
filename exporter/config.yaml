@@ -36,7 +36,7 @@ collectors:
     reconnect_delay: 5s
     max_reconnect_attempts: 10
   stats_table:
-    enabled: false
+    enabled: true
     tables:
       include:
         - "*:*:*"
@@ -51,15 +51,15 @@ collectors:
   open_telemetry:
     enabled: true
     grpc_endpoint: ":4317"                                  # gRPC endpoint for OTLP/gRPC
-    max_recv_size: 4                                        # Maximum receive size in MB
+    max_recv_size: 8                                        # Maximum receive size in MB
     translation_strategy: "UnderscoreEscapingWithSuffixes"  # Name translation strategy
     enable_batching: true                                   # Enable metric batching
     batch_size: 100                                         # Metrics per batch
     batch_timeout_ms: 1000                                  # Batch timeout in milliseconds
   go:
-    enabled: false
+    enabled: true
   process:
-    enabled: false
+    enabled: true
 
 logging:
   format: json

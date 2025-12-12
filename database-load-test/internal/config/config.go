@@ -37,7 +37,8 @@ type SurrealDBConfig struct {
 }
 
 type ExecutablesConfig struct {
-	Users UsersConfig `yaml:"users"`
+	Users   UsersConfig   `yaml:"users"`
+	Follows FollowsConfig `yaml:"follows"`
 }
 
 type UsersConfig struct {
@@ -47,6 +48,16 @@ type UsersConfig struct {
 	Delete   EventRate `yaml:"delete"`
 	GetAll   EventRate `yaml:"get_all"`
 	PageSize int       `yaml:"page_size"`
+}
+
+type FollowsConfig struct {
+	Create           EventRate `yaml:"create"`
+	GetUserFollows   EventRate `yaml:"get_user_follows"`
+	GetUserFollowers EventRate `yaml:"get_user_followers"`
+	CommonFollows    EventRate `yaml:"common_follows"`
+	CommonFollowers  EventRate `yaml:"common_followers"`
+	Delete           EventRate `yaml:"delete"`
+	PageSize         int       `yaml:"page_size"`
 }
 
 type EventRate struct {
@@ -136,4 +147,34 @@ func (c *Config) UsersGetAllParams() domain.EventRate {
 
 func (c *Config) UsersPageSize() int {
 	return c.Executables.Users.PageSize
+}
+
+// FollowsConfig implementation
+
+func (c *Config) FollowsCreateParams() domain.EventRate {
+	return c.Executables.Follows.Create.ToDomain()
+}
+
+func (c *Config) FollowsGetUserFollowsParams() domain.EventRate {
+	return c.Executables.Follows.GetUserFollows.ToDomain()
+}
+
+func (c *Config) FollowsGetUserFollowersParams() domain.EventRate {
+	return c.Executables.Follows.GetUserFollowers.ToDomain()
+}
+
+func (c *Config) FollowsCommonFollowsParams() domain.EventRate {
+	return c.Executables.Follows.CommonFollows.ToDomain()
+}
+
+func (c *Config) FollowsCommonFollowersParams() domain.EventRate {
+	return c.Executables.Follows.CommonFollowers.ToDomain()
+}
+
+func (c *Config) FollowsDeleteParams() domain.EventRate {
+	return c.Executables.Follows.Delete.ToDomain()
+}
+
+func (c *Config) FollowsPageSize() int {
+	return c.Executables.Follows.PageSize
 }

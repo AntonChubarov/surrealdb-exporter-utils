@@ -32,16 +32,26 @@ type AppConfig interface {
 	UsersDeleteParams() domain.EventRate
 	UsersGetAllParams() domain.EventRate
 	UsersPageSize() int
+
+	FollowsCreateParams() domain.EventRate
+	FollowsGetUserFollowsParams() domain.EventRate
+	FollowsGetUserFollowersParams() domain.EventRate
+	FollowsCommonFollowsParams() domain.EventRate
+	FollowsCommonFollowersParams() domain.EventRate
+	FollowsDeleteParams() domain.EventRate
+	FollowsPageSize() int
 }
 
 // Runner orchestrates the load test execution
 type Runner struct {
-	cfg              AppConfig
-	userRepo         executables.UserRepository
-	metricsCollector executables.Collector
-	metricsDisplay   *metricsdisplay.Display
-	userExecFactory  *executables.UserExecutablesFactory
-	executor         *executor.Executor
+	cfg                AppConfig
+	userRepo           executables.UserRepository
+	followsRepo        executables.FollowsRepository
+	metricsCollector   executables.Collector
+	metricsDisplay     *metricsdisplay.Display
+	userExecFactory    *executables.UserExecutablesFactory
+	followsExecFactory *executables.FollowsExecutablesFactory
+	executor           *executor.Executor
 }
 
 // New creates a new runner instance
@@ -52,19 +62,23 @@ func New(ctx context.Context, cfg AppConfig) (*Runner, error) {
 	}
 
 	userRepo := surrealdb.NewUserRepository(surrealDBInstance)
+	followsRepo := surrealdb.NewFollowsRepository(surrealDBInstance)
 
 	metricsCollector := metrics.NewCollector()
 
 	metricsDisplay := metricsdisplay.New(metricsCollector, cfg)
 
 	userExecFactory := executables.NewUserExecutablesFactory(userRepo, metricsCollector)
+	followsExecFactory := executables.NewFollowsExecutablesFactory(followsRepo, metricsCollector)
 
 	return &Runner{
-		cfg:              cfg,
-		userRepo:         userRepo,
-		metricsCollector: metricsCollector,
-		metricsDisplay:   metricsDisplay,
-		userExecFactory:  userExecFactory,
+		cfg:                cfg,
+		userRepo:           userRepo,
+		followsRepo:        followsRepo,
+		metricsCollector:   metricsCollector,
+		metricsDisplay:     metricsDisplay,
+		userExecFactory:    userExecFactory,
+		followsExecFactory: followsExecFactory,
 	}, nil
 }
 
@@ -116,6 +130,7 @@ func (r *Runner) runSetup(ctx context.Context) error {
 	setupExecutor := executor.New()
 
 	setupExecutor.AddSingle(r.userExecFactory.SetupUsersExecutable(), 0)
+	setupExecutor.AddSingle(r.followsExecFactory.SetupFollowsExecutable(), 0)
 
 	if err := setupExecutor.Run(ctx); err != nil {
 		return fmt.Errorf("failed to execute setup: %w", err)
@@ -133,11 +148,20 @@ func (r *Runner) runLoadTest(ctx context.Context) error {
 
 	loadTestExecutor := executor.New()
 
+	// User operations
 	loadTestExecutor.Add(r.userExecFactory.UserCreateExecutable(), r.cfg.UsersCreateParams())
 	loadTestExecutor.Add(r.userExecFactory.UserReadExecutable(), r.cfg.UsersReadParams())
 	loadTestExecutor.Add(r.userExecFactory.UserUpdateExecutable(), r.cfg.UsersUpdateParams())
 	loadTestExecutor.Add(r.userExecFactory.UserDeleteExecutable(), r.cfg.UsersDeleteParams())
 	loadTestExecutor.Add(r.userExecFactory.UserGetAllExecutable(r.cfg.UsersPageSize()), r.cfg.UsersGetAllParams())
+
+	// Follows operations (graph relationships)
+	loadTestExecutor.Add(r.followsExecFactory.FollowCreateExecutable(), r.cfg.FollowsCreateParams())
+	loadTestExecutor.Add(r.followsExecFactory.GetUserFollowsExecutable(r.cfg.FollowsPageSize()), r.cfg.FollowsGetUserFollowsParams())
+	loadTestExecutor.Add(r.followsExecFactory.GetUserFollowersExecutable(r.cfg.FollowsPageSize()), r.cfg.FollowsGetUserFollowersParams())
+	loadTestExecutor.Add(r.followsExecFactory.CommonFollowsExecutable(), r.cfg.FollowsCommonFollowsParams())
+	loadTestExecutor.Add(r.followsExecFactory.CommonFollowersExecutable(), r.cfg.FollowsCommonFollowersParams())
+	loadTestExecutor.Add(r.followsExecFactory.DeleteFollowExecutable(), r.cfg.FollowsDeleteParams())
 
 	fmt.Printf("Load test executor set up")
 	fmt.Println()
